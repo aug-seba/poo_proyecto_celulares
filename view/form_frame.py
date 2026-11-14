@@ -5,6 +5,7 @@ from controller.controller import Controller
 from model.repuesto import RepuestoEnStock
 from model.productoVendido import ProductoVendido
 from model.carrito_compras import CarritoCompras
+from model.venta import Venta
 
 
 
@@ -13,6 +14,8 @@ class FormFrame(tk.Frame):
     def __init__(self, master=None, **kw):
         super().__init__(master, **kw)
         self.configure(padx=10, pady=10,background="lightgray")
+        self.columnconfigure(0, weight=1)
+        self.columnconfigure(1, weight=1)
         '''self.topLevel = tk.Toplevel(self)'''
         self.controller = Controller()
         self.carrito_compras = CarritoCompras()
@@ -74,9 +77,21 @@ class FormFrame(tk.Frame):
         
         
         
+        
+        registros = self.controller.buscar_registros()
+        for registro in registros:
+            if registro[1] == data['descripcion'] and registro[2] == data['marca'] and registro[3] == data['modelo']:
+                tk.messagebox.showwarning('Advertencia', 'El producto ya existe en la base de datos.')
+                tk.messagebox.showinfo('Info', 'Se actualizará la cantidad y el precio del producto existente.')
+                self.controller._actualizar_registro(registro[0], 'stock', registro[4] + data['cantidad'])
+                self.controller._actualizar_registro(registro[0], 'precio', data['precio'])
+                self._reset()
+                self.actualizar_arbol(self.controller.buscar_registros())
+                return
+        
         tk.messagebox.showinfo('Éxito', '¡Registro completado!')
         repuesto_en_stock = RepuestoEnStock(data['descripcion'],data['marca'],data['modelo'],data['cantidad'],data['precio'])
-        self.controller.insert(repuesto_en_stock)
+        self.controller.agregar_repuesto(repuesto_en_stock)
         self._reset()
         self.actualizar_arbol(self.controller.buscar_registros())
         self.add_elements_to_list_box()
@@ -85,24 +100,7 @@ class FormFrame(tk.Frame):
         for var in self.vars.values():
             var.set('')
 
-    def _formulario_venta(self):
-        label_frame = tk.LabelFrame(self, text="Formulario de venta", relief="groove", borderwidth=5, background="lightblue", padx=10, pady=10)
-        label_frame.grid(row=0, column=0, padx=10, pady=10, sticky="ew")
-        vars = {
-            'descripcion': tk.StringVar(),
-            'cantidad': tk.IntVar(),
-            'marca': tk.StringVar()
-            }
-        
-        ttk.Label(label_frame, text='Descripcion:').grid(row=0, column=0,padx=5,pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['descripcion']).grid(row=0, column=1,padx=5, pady=5)
-        ttk.Label(label_frame, text='Marca:').grid(row=1, column=0,padx=5, pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['marca']).grid(row=1, column=1,padx=5, pady=5)
-        ttk.Label(label_frame, text='Modelo:').grid(row=2, column=0,padx=5, pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['modelo']).grid(row=2, column=1,padx=5, pady=5)
-        ttk.Label(label_frame, text='Cantidad:').grid(row=3, column=0,padx=5, pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['cantidad']).grid(row=3, column=1,padx=5, pady=5)
-        
+    
         
         
     def build_tree(self):
@@ -141,21 +139,56 @@ class FormFrame(tk.Frame):
         
 
     def build_list_box(self):
-        list_frame = tk.Frame(self,background="lightblue",relief="groove",borderwidth=5)
-        list_frame.grid(row=0, column=1, padx=10, pady=10,sticky="ew")
+        list_frame = tk.Frame(self,background="lightblue",relief="groove",borderwidth=5,width=100)
+        list_frame.grid(row=0, column=1, padx=10, pady=10)
+        tk.Label(list_frame, text="Seleccione los productos a visualizar").grid(row=0, column=0,sticky="nsew")
         
         
         
-        self.list_box = tk.Listbox(list_frame, width=40, height=10, justify="center")
-        self.list_box.grid(row=0, column=0, columnspan=2,sticky="ew", padx=10, pady=10)
-        tk.Label(list_frame, text="Seleccione los productos a visualizar")
         
         
         
+        self.list_box = tk.Listbox(list_frame, width=100, height=10, justify="center")
+        self.list_box.grid(row=1, column=0, columnspan=1,sticky="ns", padx=10, pady=10)
+
+        
+        '''self.list_box.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)'''
+
+        scroll = tk.Scrollbar(list_frame, orient=tk.VERTICAL, command=self.list_box.yview)
+        self.list_box.config(yscrollcommand=scroll.set)
+
+        scroll.grid(row=1, column=1, sticky="ns")
+        
+        
+        
+        
+        panewindow = tk.PanedWindow(list_frame, orient=tk.HORIZONTAL)
+        panewindow.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
         boton = tk.Button(list_frame, text="Seleccionar", command=self.recuperar_seleccion)
-        boton.grid(row=2, column=0, columnspan=2,sticky="ew")
-        self.list_box.grid(row=1, column=0, columnspan=2,sticky="nsew")
+        panewindow.add(boton)
+        boton_mas_vendido = tk.Button(list_frame, text="Producto más vendido", command=self.mostrar_producto_mas_vendido)
+        panewindow.add(boton_mas_vendido)
+        boton_menos_vendido = tk.Button(list_frame, text="Producto menos vendido", command=self.mostrar_producto_menos_vendido)
+        panewindow.add(boton_menos_vendido)
+       
+        self.list_box.grid(row=1, column=0,sticky="nsew")
         self.add_elements_to_list_box()
+
+    def mostrar_producto_mas_vendido(self):
+        resultado = self.controller.obtener_producto_mas_vendido()
+        if resultado:
+            descripcion, marca, modelo, total_vendido = resultado
+            tk.messagebox.showinfo("Producto más vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: {total_vendido}")
+        else:
+            tk.messagebox.showinfo("Producto más vendido", "No se encontraron registros de ventas.")
+
+    def mostrar_producto_menos_vendido(self):
+        resultado = self.controller.obtener_producto_menos_vendido()
+        if resultado:
+            descripcion, marca, modelo, total_vendido = resultado
+            tk.messagebox.showinfo("Producto menos vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: {total_vendido}")
+        else:
+            tk.messagebox.showinfo("Producto menos vendido", "No se encontraron registros de ventas.")
         
 
     def add_elements_to_list_box(self):
@@ -175,6 +208,9 @@ class FormFrame(tk.Frame):
             registros = self.controller.buscar_registros_por_condicion("descripción", opcion)
         else:
             registros = self.controller.buscar_registros()
+            if not registros:
+                tk.messagebox.showinfo("Info", "No hay productos registrados en la base de datos.")
+                return
     
         self.actualizar_arbol(registros)
         self.after(2000,self.recuperar_seleccion)
@@ -262,6 +298,9 @@ class FormFrame(tk.Frame):
         self.carrito_compras.agregar_producto(producto_vendido)
         tk.messagebox.showinfo("Info", "Producto agregado al carrito de compras.")
         self.controller._actualizar_registro(codigo, 'stock', data['stock'] - producto['stock'].get())
+        venta = Venta(codigo,producto['stock'].get(),producto['precio'].get(),producto['stock'].get()*producto['precio'].get())
+        self.controller.agregar_venta(venta)
+        '''ACA PODRIAMOS AGREGAR EL REGISTRO DE LA VENTA A LA BASE DE DATOS, SI ES QUE QUEREMOS LLEVAR UN REGISTRO DE LAS VENTAS'''
         eleccion = tk.messagebox.askquestion("Info", "¿Desea finalizar la compra?", icon='info')
 
         if eleccion == "yes":

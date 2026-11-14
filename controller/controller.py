@@ -1,6 +1,8 @@
 import sqlite3
 import os
 from model.repuesto import RepuestoEnStock
+from model.venta import Venta
+
 class Controller:
     '''aqui interactuariamos con la base de datos, recuperando y actualizando registros'''
         
@@ -10,9 +12,49 @@ class Controller:
         db = os.path.join(current_directory,"stock.db")
         connect = sqlite3.connect(db)
         return connect
+
+    def create_table(self):
+        con = self.getConnection()
+        try:
+            with con:
+                cursor = con.cursor()
+                query = f'''CREATE TABLE IF NOT EXISTS repuestos(
+                    id_prod INTEGER PRIMARY KEY,
+                    descripción TEXT NOT NULL,
+                    marca TEXT NOT NULL,
+                    modelo TEXT NOT NULL,
+                    stock INTEGER NOT NULL DEFAULT 0,
+                    precio REAL NOT NULL DEFAULT 0.0 CHECK(precio >= 0.0)
+                )'''
+                cursor.execute(query)
+        except sqlite3.IntegrityError as e:
+            print(f'Error de Integridad {e}')
+        finally:
+            con.close()
+
+    def create_table_ventas(self):
+            con = self.getConnection()
+            try:
+                with con:
+                    cursor = con.cursor()
+                    query = f'''CREATE TABLE IF NOT EXISTS ventas(
+                        id_venta INTEGER PRIMARY KEY,
+                        id_prod INTEGER NOT NULL,
+                        cantidad INTEGER NOT NULL,
+                        precio_unitario REAL NOT NULL,
+                        total REAL NOT NULL,
+                        fecha TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        FOREIGN KEY (id_prod) REFERENCES repuestos(id_prod)
+                    )'''
+                    cursor.execute(query)
+            except sqlite3.IntegrityError as e:
+                print(f'Error de Integridad {e}')
+            finally:
+                con.close()
+                        
     
     '''agregamos un registro a la tabla en nuestra base de datos'''   
-    def insert(self,repuesto:RepuestoEnStock):
+    def agregar_repuesto(self,repuesto:RepuestoEnStock):
         con = self.getConnection()
         try:
             with con:
@@ -27,6 +69,19 @@ class Controller:
         
         
         print("registro agregado")
+
+    def agregar_venta(self,venta:Venta):
+            con = self.getConnection()
+            try:
+                with con:
+                    cursor = con.cursor()
+    
+                    query = f"INSERT INTO ventas(id_prod,cantidad,precio_unitario,total)VALUES(?,?,?,?)"
+                    cursor.execute(query,(venta.get_codigo_producto(),venta.get_cantidad(),venta.get_precio_unitario(),venta.get_total()))
+            except sqlite3.IntegrityError as e:
+                print(f'Error de Integridad {e}')
+            finally:
+                con.close()
         
     '''devuelve todos los registros de la table'''    
     def buscar_registros(self):
@@ -108,6 +163,48 @@ class Controller:
     
                 query = f"UPDATE repuestos set descripción = ?, marca = ?, modelo = ?, stock = ?, precio = ? WHERE id_prod = ?"
                 cursor.execute(query,(str(repuesto.descripcion), str(repuesto.marca), str(repuesto.modelo), repuesto.stock, repuesto.precio, id))
+        except sqlite3.IntegrityError as e:
+            print(f'Error de Integridad {e}')
+        finally:
+            con.close()
+
+    def obtener_producto_mas_vendido(self):
+        con = self.getConnection()
+        try:
+            with con:
+                cursor = con.cursor()
+                query = f'''
+                    SELECT r.descripción, r.marca, r.modelo, SUM(v.cantidad) AS total_vendido
+                    FROM repuestos r
+                    JOIN ventas v ON r.id_prod = v.id_prod
+                    GROUP BY r.id_prod
+                    ORDER BY total_vendido DESC
+                    LIMIT 1
+                '''
+                cursor.execute(query)
+                resultado = cursor.fetchone()
+                return resultado
+        except sqlite3.IntegrityError as e:
+            print(f'Error de Integridad {e}')
+        finally:
+            con.close()
+
+    def obtener_producto_menos_vendido(self):
+        con = self.getConnection()
+        try:
+            with con:
+                cursor = con.cursor()
+                query = f'''
+                    SELECT r.descripción, r.marca, r.modelo, SUM(v.cantidad) AS total_vendido
+                    FROM repuestos r
+                    JOIN ventas v ON r.id_prod = v.id_prod
+                    GROUP BY r.id_prod
+                    ORDER BY total_vendido ASC
+                    LIMIT 1
+                '''
+                cursor.execute(query)
+                resultado = cursor.fetchone()
+                return resultado
         except sqlite3.IntegrityError as e:
             print(f'Error de Integridad {e}')
         finally:
