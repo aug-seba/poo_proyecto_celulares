@@ -191,6 +191,7 @@ class Controller:
                     GROUP BY r.id_prod
                     ORDER BY total_vendido DESC
                     LIMIT 1
+                    
                 '''
                 cursor.execute(query)
                 resultado = cursor.fetchone()
@@ -205,17 +206,34 @@ class Controller:
         try:
             with con:
                 cursor = con.cursor()
-                query = f'''
-                    SELECT r.descripción, r.marca, r.modelo, SUM(v.cantidad) AS total_vendido
-                    FROM repuestos r
-                    JOIN ventas v ON r.id_prod = v.id_prod
-                    GROUP BY r.id_prod
-                    ORDER BY total_vendido ASC
-                    LIMIT 1
-                '''
+                query = f'''SELECT descripción,marca,modelo FROM repuestos
+                            WHERE id_prod NOT IN(SELECT id_prod FROM ventas)
+                            '''
+                
                 cursor.execute(query)
                 resultado = cursor.fetchone()
-                return resultado
+                print(resultado)
+
+                if resultado:
+                    print("Estoy aca")
+                    print("Hola")
+                    return resultado
+                else:
+                    print("Estoy aqui")
+                    print("Chau")
+                    query = f'''
+                                SELECT r.descripción, r.marca, r.modelo, SUM(v.cantidad) AS total_vendido
+                                FROM repuestos r
+                                JOIN ventas v ON r.id_prod = v.id_prod
+                                GROUP BY r.id_prod
+                                ORDER BY total_vendido ASC
+                                LIMIT 1
+                                        
+                                    '''
+                    cursor.execute(query)
+                    resultado = cursor.fetchone()
+                    print(resultado)
+                    return resultado
         except sqlite3.IntegrityError as e:
             print(f'Error de Integridad {e}')
         finally:

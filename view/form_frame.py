@@ -176,34 +176,30 @@ class FormFrame(tk.Frame):
         self.list_box.grid(row=1, column=0,sticky="nsew")
         self.add_elements_to_list_box()
     
-    '''def iniciar_venta(self):
-        codigo = tk.StringVar()
-        topeLevel = tk.Toplevel(self)
-        text = tk.Message(topeLevel,text="Para iniciar una venta ingrese el codigo de uno de los productos del listado y luego complete el formulario de venta")
-        label = tk.Label(topeLevel,text="codigo")
-        entry = ttk.Entry(topeLevel,textvariable=codigo)
-        producto_a_vender = self.controller.buscar_registro(codigo)
-        producto ={'descripcion': tk.StringVar(self,producto_a_vender[0][1]),
-                                'marca': tk.StringVar(self,producto_a_vender[0][2]),
-                                'modelo': tk.StringVar(self,producto_a_vender[0][3]),
-                                'stock': tk.IntVar(self,producto_a_vender[0][4]),
-                                'precio': tk.DoubleVar(self,producto_a_vender[0][5])
-                                }
-        data = {k: v.get() for k, v in producto.items()}'''
 
     def mostrar_producto_mas_vendido(self):
         resultado = self.controller.obtener_producto_mas_vendido()
+        
         if resultado:
             descripcion, marca, modelo, total_vendido = resultado
+            print(f'Nombre: {descripcion}, marca: {marca}, modelo: {modelo}, total vendido: {total_vendido}')
+            
             tk.messagebox.showinfo("Repuesto más vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: {total_vendido}")
         else:
             tk.messagebox.showinfo("Repuesto más vendido", "No se encontraron registros de ventas.")
 
     def mostrar_producto_menos_vendido(self):
         resultado = self.controller.obtener_producto_menos_vendido()
+        
         if resultado:
-            descripcion, marca, modelo, total_vendido = resultado
-            tk.messagebox.showinfo("Repuesto menos vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: {total_vendido}")
+            
+            if(len(resultado) == 3):
+                descripcion, marca, modelo = resultado
+                tk.messagebox.showinfo("Repuesto menos vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: 0")
+            else:
+                descripcion, marca, modelo, total_vendido = resultado
+                tk. messagebox.showinfo("Repuesto menos vendido", f"Descripcion: {descripcion}\nMarca: {marca}\nModelo:{modelo}\nTotal vendido: {total_vendido}")
+        
         else:
             tk.messagebox.showinfo("Repuesto menos vendido", "No se encontraron registros de ventas.")
         
@@ -321,6 +317,7 @@ class FormFrame(tk.Frame):
                 tk.messagebox.showinfo("info","Cantidad vendida y precio de venta deben ser valores positivos")
                 return
             repuesto = RepuestoEnStock(*data.values())
+            print(f'estos son los valores para: {repuesto}')
         except tk.TclError as e:
             tk.messagebox.showerror('Error',"cantidad vendida y precio de venta deben ser valores numericos")
             return
@@ -334,6 +331,7 @@ class FormFrame(tk.Frame):
         self.carrito_compras.agregar_producto(repuesto_vendido)
         tk.messagebox.showinfo("Info", "Repuesto agregado al carrito de compras.")
         self.controller._actualizar_registro(codigo, 'stock', repuesto.get_stock() - repuesto_vendido.get_cantidad_vendida())
+        repuesto.set_stock(repuesto.get_stock()-repuesto_vendido.get_cantidad_vendida())
         if(repuesto.verificar_stock()):
             tk.messagebox.showwarning("Alert",f'Stock bajo para el producto {repuesto.get_nombre()} {repuesto.get_marca()} {repuesto.get_modelo()}')
         venta = Venta(codigo,repuesto_vendido.get_cantidad_vendida(),repuesto_vendido.get_precio(),repuesto_vendido.get_cantidad_vendida()*repuesto_vendido.get_precio())
