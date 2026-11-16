@@ -1,10 +1,10 @@
-from model.productoVendido import ProductoVendido
+from model.productoVendido import RepuestoVendido
 class CarritoCompras:
     def __init__(self):
         self.productos_vendidos = []
         self.total_ventas = 0.0
 
-    def agregar_producto(self, producto_vendido: ProductoVendido):
+    def agregar_producto(self, producto_vendido: RepuestoVendido):
         self.productos_vendidos.append(producto_vendido)
         self.total_ventas += producto_vendido.get_precio_total_venta()
 

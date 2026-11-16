@@ -77,7 +77,7 @@ class Controller:
                     cursor = con.cursor()
     
                     query = f"INSERT INTO ventas(id_prod,cantidad,precio_unitario,total)VALUES(?,?,?,?)"
-                    cursor.execute(query,(venta.get_codigo_producto(),venta.get_cantidad(),venta.get_precio_unitario(),venta.get_total()))
+                    cursor.execute(query,(venta.get_codigo_producto(),venta.get_cantidad_vendida(),venta.get_precio_unitario(),venta.get_total()))
             except sqlite3.IntegrityError as e:
                 print(f'Error de Integridad {e}')
             finally:
@@ -98,19 +98,30 @@ class Controller:
                 print(f'Error de Integridad {e}')
             finally:
                 con.close()
-    
-    '''Busca un registo a partir de su categoria, marca y modelo'''
-    def buscar_registro(self,categoria=None,marca=None,modelo=None):
+    def buscar_registro_por_codigo(self, codigo):
         con = self.getConnection()
-        if not all([categoria,marca,modelo]):
-                            raise ValueError("la categoria, la marca y el modelo deben ser indicados.")
         try:
             with con:
                 cursor = con.cursor()
-                query = f'SELECT * FROM repuestos WHERE descripción = ? AND marca = ? AND modelo = ?'
-                cursor.execute(query,(categoria,marca,modelo))
+                query = 'SELECT * FROM repuestos WHERE id_prod = ?'
+                cursor.execute(query, (codigo,))
+                registro = cursor.fetchall()
+                return registro
+        except sqlite3.IntegrityError as e:
+            print(f'Error de Integridad {e}')
+        finally:
+            con.close()
+
+    def buscar_registro(self, categoria=None, marca=None, modelo=None):
+        con = self.getConnection()
+        if not all([categoria, marca, modelo]):
+            raise ValueError("la categoria, la marca y el modelo deben ser indicados.")
+        try:
+            with con:
+                cursor = con.cursor()
+                query = 'SELECT * FROM repuestos WHERE descripción = ? AND marca = ? AND modelo = ?'
+                cursor.execute(query, (categoria, marca, modelo))
                 registros = cursor.fetchall()
-                
                 return registros
         except sqlite3.IntegrityError as e:
             print(f'Error de Integridad {e}')

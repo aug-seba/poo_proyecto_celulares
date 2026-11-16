@@ -3,7 +3,7 @@ from tkinter import ttk
 from tkinter import messagebox
 from controller.controller import Controller
 from model.repuesto import RepuestoEnStock
-from model.productoVendido import ProductoVendido
+from model.productoVendido import RepuestoVendido
 from model.carrito_compras import CarritoCompras
 from model.venta import Venta
 
@@ -14,9 +14,6 @@ class FormFrame(tk.Frame):
     def __init__(self, master=None, **kw):
         super().__init__(master, **kw)
         self.configure(padx=10, pady=10,background="lightgray")
-        self.columnconfigure(0, weight=1)
-        self.columnconfigure(1, weight=1)
-        '''self.topLevel = tk.Toplevel(self)'''
         self.controller = Controller()
         self.carrito_compras = CarritoCompras()
         
@@ -37,20 +34,20 @@ class FormFrame(tk.Frame):
             'cantidad': tk.IntVar(),
             'precio': tk.DoubleVar()
         }
-        label_frame = tk.LabelFrame(self,text="Formulario de registro de repuestos",relief="groove",borderwidth=5,background="lightblue",padx=10,pady=10)
+        label_frame = tk.LabelFrame(self,text="Formulario de registro de repuestos",relief="groove",borderwidth=5,background="lightblue")
         
         label_frame.grid(column=0, row=0, padx=10, pady=10,sticky="we")
-        ttk.Label(label_frame, text='Descripcion:').grid(row=0, column=0,padx=5,pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['descripcion']).grid(row=0, column=1,padx=5, pady=5)
-        ttk.Label(label_frame, text='Marca:').grid(row=1, column=0,padx=5, pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['marca']).grid(row=1, column=1,padx=5, pady=5)
-        ttk.Label(label_frame, text='Modelo:').grid(row=2, column=0,padx=5, pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['modelo']).grid(row=2, column=1,padx=5, pady=5)
-        ttk.Label(label_frame, text='Cantidad:').grid(row=3, column=0,padx=5, pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['cantidad']).grid(row=3, column=1,padx=5, pady=5)
-        ttk.Label(label_frame, text='Precio:').grid(row=4, column=0,padx=5, pady=5)
-        ttk.Entry(label_frame, textvariable=self.vars['precio']).grid(row=4, column=1,padx=5, pady=5)
-        tk.Button(label_frame, text='Agregar producto', command=self._on_submit).grid(row=5, column=0,columnspan=2,sticky="nsew", padx=5, pady=5)
+        ttk.Label(label_frame, text='Descripcion:').grid(row=0, column=1,padx=5,pady=5)
+        ttk.Entry(label_frame, textvariable=self.vars['descripcion']).grid(row=0, column=2,padx=5, pady=5)
+        ttk.Label(label_frame, text='Marca:').grid(row=1, column=1,padx=5, pady=5)
+        ttk.Entry(label_frame, textvariable=self.vars['marca']).grid(row=1, column=2,padx=5, pady=5)
+        ttk.Label(label_frame, text='Modelo:').grid(row=2, column=1,padx=5, pady=5)
+        ttk.Entry(label_frame, textvariable=self.vars['modelo']).grid(row=2, column=2,padx=5, pady=5)
+        ttk.Label(label_frame, text='Cantidad:').grid(row=3, column=1,padx=5, pady=5)
+        ttk.Entry(label_frame, textvariable=self.vars['cantidad']).grid(row=3, column=2,padx=5, pady=5)
+        ttk.Label(label_frame, text='Precio:').grid(row=4, column=1,padx=5, pady=5)
+        ttk.Entry(label_frame, textvariable=self.vars['precio']).grid(row=4, column=2,padx=5, pady=5)
+        tk.Button(label_frame, text='Agregar producto', command=self._on_submit).grid(row=5, column=1,columnspan=2,sticky="nsew", padx=5, pady=5)
         
 
     
@@ -79,15 +76,19 @@ class FormFrame(tk.Frame):
         
         
         registros = self.controller.buscar_registros()
-        for registro in registros:
-            if registro[1] == data['descripcion'] and registro[2] == data['marca'] and registro[3] == data['modelo']:
-                tk.messagebox.showwarning('Advertencia', 'El producto ya existe en la base de datos.')
-                tk.messagebox.showinfo('Info', 'Se actualizará la cantidad y el precio del producto existente.')
-                self.controller._actualizar_registro(registro[0], 'stock', registro[4] + data['cantidad'])
-                self.controller._actualizar_registro(registro[0], 'precio', data['precio'])
-                self._reset()
-                self.actualizar_arbol(self.controller.buscar_registros())
-                return
+        if registros:
+            for registro in registros:
+                repuesto = RepuestoEnStock(*registro[1:])
+                
+                
+                if repuesto.get_nombre().lower() == data['descripcion'].lower() and repuesto.get_marca().lower() == data['marca'].lower() and repuesto.get_modelo().lower() == data['modelo'].lower():
+                    tk.messagebox.showwarning('Advertencia', 'El producto ya existe en la base de datos.')
+                    tk.messagebox.showinfo('Info', 'Se actualizará la cantidad y el precio del producto existente.')
+                    self.controller._actualizar_registro(registro[0], 'stock', registro[4] + data['cantidad'])
+                    self.controller._actualizar_registro(registro[0], 'precio', data['precio'])
+                    self._reset()
+                    self.actualizar_arbol(self.controller.buscar_registros())
+                    return
         
         tk.messagebox.showinfo('Éxito', '¡Registro completado!')
         repuesto_en_stock = RepuestoEnStock(data['descripcion'],data['marca'],data['modelo'],data['cantidad'],data['precio'])
@@ -163,32 +164,48 @@ class FormFrame(tk.Frame):
         
         
         panewindow = tk.PanedWindow(list_frame, orient=tk.HORIZONTAL)
-        panewindow.grid(row=2, column=0, columnspan=2, sticky="nsew", padx=10, pady=10)
+        panewindow.grid(row=2, column=0, columnspan=2, padx=10, pady=10)
         boton = tk.Button(list_frame, text="Seleccionar", command=self.recuperar_seleccion)
         panewindow.add(boton)
-        boton_mas_vendido = tk.Button(list_frame, text="Producto más vendido", command=self.mostrar_producto_mas_vendido)
+        boton_mas_vendido = tk.Button(list_frame, text="Repuesto más vendido", command=self.mostrar_producto_mas_vendido)
         panewindow.add(boton_mas_vendido)
-        boton_menos_vendido = tk.Button(list_frame, text="Producto menos vendido", command=self.mostrar_producto_menos_vendido)
+        boton_menos_vendido = tk.Button(list_frame, text="Repuesto menos vendido", command=self.mostrar_producto_menos_vendido)
+        '''boton_iniciar_venta = tk.Button(list_frame, text="Iniciar venta",command=self.iniciar_venta)'''
         panewindow.add(boton_menos_vendido)
        
         self.list_box.grid(row=1, column=0,sticky="nsew")
         self.add_elements_to_list_box()
+    
+    '''def iniciar_venta(self):
+        codigo = tk.StringVar()
+        topeLevel = tk.Toplevel(self)
+        text = tk.Message(topeLevel,text="Para iniciar una venta ingrese el codigo de uno de los productos del listado y luego complete el formulario de venta")
+        label = tk.Label(topeLevel,text="codigo")
+        entry = ttk.Entry(topeLevel,textvariable=codigo)
+        producto_a_vender = self.controller.buscar_registro(codigo)
+        producto ={'descripcion': tk.StringVar(self,producto_a_vender[0][1]),
+                                'marca': tk.StringVar(self,producto_a_vender[0][2]),
+                                'modelo': tk.StringVar(self,producto_a_vender[0][3]),
+                                'stock': tk.IntVar(self,producto_a_vender[0][4]),
+                                'precio': tk.DoubleVar(self,producto_a_vender[0][5])
+                                }
+        data = {k: v.get() for k, v in producto.items()}'''
 
     def mostrar_producto_mas_vendido(self):
         resultado = self.controller.obtener_producto_mas_vendido()
         if resultado:
             descripcion, marca, modelo, total_vendido = resultado
-            tk.messagebox.showinfo("Producto más vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: {total_vendido}")
+            tk.messagebox.showinfo("Repuesto más vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: {total_vendido}")
         else:
-            tk.messagebox.showinfo("Producto más vendido", "No se encontraron registros de ventas.")
+            tk.messagebox.showinfo("Repuesto más vendido", "No se encontraron registros de ventas.")
 
     def mostrar_producto_menos_vendido(self):
         resultado = self.controller.obtener_producto_menos_vendido()
         if resultado:
             descripcion, marca, modelo, total_vendido = resultado
-            tk.messagebox.showinfo("Producto menos vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: {total_vendido}")
+            tk.messagebox.showinfo("Repuesto menos vendido", f"Descripción: {descripcion}\nMarca: {marca}\nModelo: {modelo}\nTotal vendido: {total_vendido}")
         else:
-            tk.messagebox.showinfo("Producto menos vendido", "No se encontraron registros de ventas.")
+            tk.messagebox.showinfo("Repuesto menos vendido", "No se encontraron registros de ventas.")
         
 
     def add_elements_to_list_box(self):
@@ -232,7 +249,7 @@ class FormFrame(tk.Frame):
         
         
         topLevel = tk.Toplevel(self)
-        label_frame = tk.LabelFrame(topLevel,text="Producto seleccionado")
+        label_frame = tk.LabelFrame(topLevel,text="Repuesto seleccionado")
         label_frame.pack(padx=10,pady=10)
         ttk.Label(label_frame, text='Descripcion:').grid(row=0, column=0)
         ttk.Entry(label_frame, textvariable=producto['descripcion']).grid(row=0, column=1)
@@ -274,6 +291,7 @@ class FormFrame(tk.Frame):
             except tk.TclError:
                 tk.messagebox.showerror("Error", f'valor invalido para {k1}')
                 return
+        tk.messagebox.showinfo("Info","Producto Actualizado exitosamente")
         topLevel.destroy()
         self.actualizar_arbol(self.controller.buscar_registros())
 
@@ -283,22 +301,42 @@ class FormFrame(tk.Frame):
         self.carrito_compras.vaciar_carrito()
 
     def _agregar_al_carrito(self, codigo, data, producto, toplevel):
-        if data['stock'] < producto['stock'].get():
-            tk.messagebox.showwarning("Advertencia", "No hay stock disponible para este producto.")
+        try:
+            repuesto_vendido = RepuestoVendido(
+                        producto['descripcion'].get(),
+                        producto['marca'].get(),
+                        producto['modelo'].get(),
+                        data['stock'],
+                        producto['precio'].get(),
+                        producto['stock'].get()) 
+                
+
+            if not all([producto['descripcion'].get(),producto['marca'].get(),producto['modelo'].get()]):
+                tk.messagebox.showwarning('validacion','descripcion marca y modelo son obligatorios')
+                return
+            if data['stock'] < producto['stock'].get():
+                tk.messagebox.showwarning("Advertencia", "No hay stock disponible para este producto.")
+                return
+            if producto['stock'].get() < 0 or producto['precio'].get() < 0:
+                tk.messagebox.showinfo("info","Cantidad vendida y precio de venta deben ser valores positivos")
+                return
+            repuesto = RepuestoEnStock(*data.values())
+        except tk.TclError as e:
+            tk.messagebox.showerror('Error',"cantidad vendida y precio de venta deben ser valores numericos")
             return
+            '''print(repuesto)'''
 
-        producto_vendido = ProductoVendido(
-            producto['descripcion'].get(),
-            producto['marca'].get(),
-            producto['modelo'].get(),
-            producto['stock'].get(),
-            producto['precio'].get()
-        )
+            
+            
+        
 
-        self.carrito_compras.agregar_producto(producto_vendido)
-        tk.messagebox.showinfo("Info", "Producto agregado al carrito de compras.")
-        self.controller._actualizar_registro(codigo, 'stock', data['stock'] - producto['stock'].get())
-        venta = Venta(codigo,producto['stock'].get(),producto['precio'].get(),producto['stock'].get()*producto['precio'].get())
+
+        self.carrito_compras.agregar_producto(repuesto_vendido)
+        tk.messagebox.showinfo("Info", "Repuesto agregado al carrito de compras.")
+        self.controller._actualizar_registro(codigo, 'stock', repuesto.get_stock() - repuesto_vendido.get_cantidad_vendida())
+        if(repuesto.verificar_stock()):
+            tk.messagebox.showwarning("Alert",f'Stock bajo para el producto {repuesto.get_nombre()} {repuesto.get_marca()} {repuesto.get_modelo()}')
+        venta = Venta(codigo,repuesto_vendido.get_cantidad_vendida(),repuesto_vendido.get_precio(),repuesto_vendido.get_cantidad_vendida()*repuesto_vendido.get_precio())
         self.controller.agregar_venta(venta)
         '''ACA PODRIAMOS AGREGAR EL REGISTRO DE LA VENTA A LA BASE DE DATOS, SI ES QUE QUEREMOS LLEVAR UN REGISTRO DE LAS VENTAS'''
         eleccion = tk.messagebox.askquestion("Info", "¿Desea finalizar la compra?", icon='info')

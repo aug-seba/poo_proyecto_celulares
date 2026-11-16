@@ -1,27 +1,17 @@
 from model.producto import Producto
+from model.repuesto import RepuestoEnStock
 
-class ProductoVendido(Producto):
-    def __init__(self, nombre,marca,modelo,cantidad_vendida,precio_unitario):
-        super().__init__(nombre,marca)
-        self.modelo = modelo        
+
+class RepuestoVendido(RepuestoEnStock):
+    def __init__(self,nombre,marca,modelo,stock,precio,cantidad_vendida):
+        super().__init__(nombre,marca,modelo,stock,precio)
         self.cantidad_vendida = cantidad_vendida
-        self.precio_unitario = precio_unitario
-        self.precio_total_venta = precio_unitario*cantidad_vendida
-
-    def set_modelo(self,modelo):
-        self.modelo = modelo
-    def get_modelo(self):
-        return self.modelo
-
+        self.precio_total_venta = self.precio*cantidad_vendida
+        
     def set_cantidad_vendida(self,cantidad_vendida):
         self.cantidad_vendida = cantidad_vendida
     def get_cantidad_vendida(self):
         return self.cantidad_vendida
-
-    def set_precio_unitario(self,precio_unitario):
-        self.precio_unitario = precio_unitario
-    def get_precio_unitario(self):
-        return self.precio_unitario
 
     def set_precio_total_venta(self,precio_total_venta):
         self.precio_total_venta = precio_total_venta
@@ -29,4 +19,4 @@ class ProductoVendido(Producto):
         return self.precio_total_venta
 
     def __str__(self) -> str:
-        return f"Producto vendido: {super().__str__}, Modelo: {self.modelo}, Cantidad vendida: {self.cantidad_vendida}, Precio unitario: {self.precio_unitario}, Precio total de venta: {self.precio_total_venta}"
+        return f"Producto vendido: {super().__str__}, Cantidad vendida: {self.cantidad_vendida}, Precio total de venta: {self.precio_total_venta}"
